@@ -1,9 +1,7 @@
 name = Serial
 description = Defines atomic auto increment (serial) field type.
 package = Field
-core = 7.x
-
-files[] = tests/serial.test
-files[] = tests/serial.fields.inc
+backdrop = 1.x
+type = module
 
 dependencies[] = field

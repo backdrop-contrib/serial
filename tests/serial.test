@@ -4,10 +4,12 @@
  * Test Serial functionality.
  */
 
+require_once backdrop_get_path('module', 'serial') . '/tests/serial.fields.inc';
+
 /**
  * Class SerialTestCase.
  */
-class SerialTestCase extends DrupalWebTestCase {
+class SerialTestCase extends BackdropWebTestCase {
 
   const CONTENT_TYPE = 'serial_test_content_type';
 
@@ -19,21 +21,10 @@ class SerialTestCase extends DrupalWebTestCase {
   /**
    * {@inheritdoc}
    */
-  public static function getInfo() {
-    return array(
-      'name' => 'Serial Field',
-      'group' => 'Field',
-      'description' => 'Testing serial field functionality.',
-    );
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function setUp() {
     parent::setUp('serial', 'comment');
 
-    $this->drupalCreateContentType(array('type' => static::CONTENT_TYPE));
+    $this->backdropCreateContentType(array('type' => static::CONTENT_TYPE, 'settings' => array('comment_default' => 2)));
 
     $this->fields = new SerialFields(array(
       'serial' => array(
@@ -50,7 +41,7 @@ class SerialTestCase extends DrupalWebTestCase {
       ->attach('comment', 'comment_node_' . static::CONTENT_TYPE);
 
     // Grant all known permissions for user.
-    $this->drupalLogin($this->drupalCreateUser(array_keys(module_invoke_all('permission'))));
+    $this->backdropLogin($this->backdropCreateUser(array_keys(module_invoke_all('permission'))));
   }
 
   /**
@@ -66,19 +57,21 @@ class SerialTestCase extends DrupalWebTestCase {
       // Open form for add new node.
       $this->visit('node/add/' . str_replace('_', '-', static::CONTENT_TYPE));
       // Submit new node with filled title.
-      $this->drupalPost(NULL, array('title' => "Node $i"), t('Save'));
+      $this->backdropPost(NULL, array('title' => "Node $i"), t('Save'));
     }
 
     // Go to editing of the last created node.
-    $this->visit("node/$nodes/edit");
+    // The profile adds two sample nodes so account for that.
+    $nid = $nodes + 2;
+    $this->visit("node/$nid/edit");
     // Check that last created node number equal to serial ID.
     $this->assertSerialField($nodes);
     // Go to viewing of the last created node.
-    $this->visit("node/$nodes");
+    $this->visit("node/$nid");
 
     // Post comments for last created node.
     for ($i = 0; $i < $comments; $i++) {
-      $this->drupalPost(NULL, array(self::fieldName('comment_body') => "Comment $i"), t('Save'));
+      $this->backdropPost(NULL, array(self::fieldName('comment_body') => "Comment $i"), t('Save'));
     }
 
     // Go to editing of the last created comment.
@@ -106,15 +99,15 @@ class SerialTestCase extends DrupalWebTestCase {
    *   Expected response code.
    */
   private function visit($path, $code = 200) {
-    $this->drupalGet($path);
+    $this->backdropGet($path);
     $this->assertResponse($code);
   }
 
   /**
-   * Convert Drupal field name into HTML.
+   * Convert Backdrop field name into HTML.
    *
    * @param string $name
-   *   Drupal field name.
+   *   Backdrop field name.
    * @param string $column
    *   Field column.
    *

@@ -46,37 +46,6 @@ class SerialFields {
   }
 
   /**
-   * Completely delete fields.
-   *
-   * This function deletes tables: "field_data_NAME" and "field_revision_NAME"
-   * and entries in "field_config" and "field_config_instances".
-   *
-   * @return self
-   *   Object instance.
-   */
-  public function delete() {
-    foreach (array_keys($this->fields) as $name) {
-      // Delete tables.
-      foreach (array('data', 'revision') as $table_type) {
-        $table = "field_{$table_type}_{$name}";
-
-        if (db_table_exists($table)) {
-          db_drop_table($table);
-        }
-      }
-
-      // Delete entries.
-      foreach (array('config', 'config_instance') as $table_type) {
-        db_delete("field_$table_type")
-          ->condition('field_name', $name)
-          ->execute();
-      }
-    }
-
-    return $this;
-  }
-
-  /**
    * Attach existing fields into entity.
    *
    * @param string $entity_type
@@ -133,56 +102,6 @@ class SerialFields {
           'entity_type' => $entity_type,
         ));
       }
-    }
-
-    return $this;
-  }
-
-  /**
-   * Get field instances.
-   *
-   * @return array[]
-   *   Field instances.
-   */
-  public function &getInstances() {
-    if (empty($this->instances)) {
-      $query = db_select('field_config_instance', 'fci')
-        ->fields('fci', array('field_name', 'data'))
-        ->condition('field_name', array_keys($this->fields))
-        ->execute()
-        ->fetchAllKeyed();
-
-      $this->instances = array_map('unserialize', $query);
-    }
-
-    return $this->instances;
-  }
-
-  /**
-   * Field definitions getter.
-   *
-   * @return array[]
-   *   Field definitions.
-   */
-  public function getFields() {
-    return $this->fields;
-  }
-
-  /**
-   * Save field instances.
-   *
-   * @return self
-   *   Object instance.
-   *
-   * @throws \Exception
-   * @throws \InvalidMergeQueryException
-   */
-  public function saveInstances() {
-    foreach ($this->instances as $field_name => $data) {
-      db_merge('field_config_instance')
-        ->fields(array('data' => serialize($data)))
-        ->condition('field_name', $field_name)
-        ->execute();
     }
 
     return $this;

@@ -51,21 +51,28 @@ function _serial_drop_table(array $field, array $instance) {
  *   A new entity bundle machine name.
  */
 function _serial_rename_tables($entity_type, $bundle_old, $bundle_new) {
-  // Build the query to find all affected tables.
-  $query = db_select('field_config', 'f')
-    ->fields('f', array('field_name'));
-
-  $query->join('field_config_instance', 'i', '(f.field_name = i.field_name)');
-
-  $query->condition('f.type', SERIAL_FIELD_TYPE);
-  $query->condition('i.entity_type', $entity_type);
-  $query->condition('i.bundle', $bundle_new);
+  // Build the query to find all affected tables.  
+  $fields = array();
+  $names = config_get_names_with_prefix('field.instance.');
+  foreach ($names as $name) {
+    $config = config($name);
+    $field_config = config('field.field.' . $config->get('field_name'));
+    if ($entity_type == $config->get('entity_type')
+      && $bundle_new == $config->get('bundle')
+      && $field_config->get('type') == SERIAL_FIELD_TYPE) {
+	  $fields[] = array(
+	    'field_name' => $config->get('field_name'),
+	    'entity_type' => $config->get('entity_type'),
+	    'bundle' => $config->get('bundle'),
+	  );
+	}
+  }
 
   // Rename each affected table.
-  foreach ($query->addTag('node_access')->execute() as $record) {
+  foreach ($fields as $field) {
     db_rename_table(
-      _serial_get_table_name($entity_type, $bundle_old, $record->field_name),
-      _serial_get_table_name($entity_type, $bundle_new, $record->field_name)
+      _serial_get_table_name($entity_type, $bundle_old, $field['field_name']),
+      _serial_get_table_name($entity_type, $bundle_new, $field['field_name'])
     );
   }
 }
@@ -238,13 +245,18 @@ function _serial_init_old_entities($entity_type, $bundle, $field_name) {
  *   Result set containing entity type, entity bundle, field name.
  */
 function _serial_get_all_fields() {
-  $query = db_select('field_config', 'f');
-  $query->join('field_config_instance', 'i', 'i.field_name = f.field_name');
-
-  return $query
-    ->fields('i', array('entity_type', 'bundle', 'field_name'))
-    ->condition('f.type', SERIAL_FIELD_TYPE)
-    ->condition('i.deleted', 0)
-    ->execute()
-    ->fetchAll();
+  $fields = array();
+  $names = config_get_names_with_prefix('field.instance.');
+  foreach ($names as $name) {
+    $config = config($name);
+    $field_config = config('field.field.' . $config->get('field_name'));
+    if (!$config->get('deleted') && $field_config->get('type') == SERIAL_FIELD_TYPE) {
+	  $fields[] = array(
+	    'field_name' => $config->get('field_name'),
+	    'entity_type' => $config->get('entity_type'),
+	    'bundle' => $config->get('bundle'),
+	  );
+	}
+  }
+  return $fields;
 }

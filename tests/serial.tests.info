@@ -1,0 +1,5 @@
+[SerialTestCase]
+name = Serial Field
+description = Testing serial field functionality.
+group = Serial Field
+file = serial.test
